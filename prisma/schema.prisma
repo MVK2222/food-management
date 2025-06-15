@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(uuid())
+  name            String
+  email           String            @unique
+  password        String
+  role            Role              @default(USER)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+  claims          Claim[] // 👈 Add this line
+  foods           Food[]
+  Waste           Waste[]
+  RecyclerRequest RecyclerRequest[]
+  notifications   Notification[]
+  feedbacks       Feedback[]
+}
+
+enum Role {
+  USER
+  ADMIN
+  RESTAURANT
+  NGO
+  RECYCLER
+}
+
+model Food {
+  id           String     @id @default(uuid())
+  title        String
+  description  String
+  category     String
+  city         String
+  quantity     Int
+  imageUrl     String
+  status       FoodStatus @default(AVAILABLE)
+  expiryTime   DateTime
+  createdAt    DateTime   @default(now())
+  restaurant   User       @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  donateReady  Boolean    @default(false)
+  claims       Claim[] // 👈 Add this line
+}
+
+enum FoodStatus {
+  AVAILABLE
+  DONATED
+  EXPIRED
+  SOLD
+}
+
+model Claim {
+  id        String      @id @default(uuid())
+  food      Food        @relation(fields: [foodId], references: [id])
+  foodId    String
+  user      User        @relation(fields: [userId], references: [id])
+  userId    String
+  claimedAt DateTime    @default(now())
+  status    ClaimStatus @default(PENDING)
+  type      ClaimType
+}
+
+enum ClaimStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum ClaimType {
+  DONATION
+  PURCHASE
+}
+
+model Waste {
+  id               String            @id @default(uuid())
+  restaurant       User              @relation(fields: [restaurantId], references: [id])
+  restaurantId     String
+  name             String
+  category         WasteCategory
+  quantity         Int
+  unit             String // e.g. kg, trays, etc.
+  status           WasteStatus       @default(PENDING)
+  createdAt        DateTime          @default(now())
+  recyclerRequests RecyclerRequest[]
+}
+
+enum WasteCategory {
+  SPOILED
+  VEGETABLE_WASTE
+  LEFTOVERS
+}
+
+enum WasteStatus {
+  PENDING
+  PICKED
+  EXPIRED
+}
+
+model RecyclerRequest {
+  id         String        @id @default(uuid())
+  recycler   User          @relation(fields: [recyclerId], references: [id])
+  recyclerId String
+  waste      Waste         @relation(fields: [wasteId], references: [id])
+  wasteId    String
+  status     RequestStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model LogEntry {
+  id        String   @id @default(uuid())
+  level     String
+  message   String
+  context   String?
+  createdAt DateTime @default(now())
+}
